@@ -1,5 +1,4 @@
 import datasets
-import ray.data
 import torchtext
 import wandb
 import torch
@@ -40,8 +39,8 @@ def get_data_loader(dataset, batch_size, pad_index, shuffle=False):
     )
     return data_loader
 
-def fetchAndTokenize():
-    # Get data from hugging face and import into ray's datasets
+def fetchAndTokenize(run):
+    # Get data from hugging face
     train_data, test_data = datasets.load_dataset("imdb", split=["train", "test"])
     tokenizer = torchtext.data.utils.get_tokenizer("basic_english")
 
@@ -71,6 +70,7 @@ def fetchAndTokenize():
     numericalized_valid_data = tokenized_valid_valid_data.map(numericalize, fn_kwargs={"vocab": vocab})
     numericalized_test_data = tokenized_test_data.map(numericalize, fn_kwargs={"vocab": vocab})
 
+
     torch_train_data = numericalized_train_data.with_format(type="torch", columns=["ids", "label"])
     torch_valid_data = numericalized_valid_data.with_format(type="torch", columns=["ids", "label"])
     torch_test_data = numericalized_test_data.with_format(type="torch", columns=["ids", "label"])
@@ -83,6 +83,6 @@ def fetchAndTokenize():
 
     model = NBoW(len(vocab), wandb.config["embedding_dim"], output_dim, pad_index)
 
-    return vocab, model, train_data_loader, valid_data_loader, test_data_loader
+    return vocab, model, tokenizer, train_data_loader, valid_data_loader, test_data_loader
 
 

@@ -1,0 +1,14 @@
+epochs:
+  value: 5
+batch_size:
+  value: 512
+seed:
+  value: 1234
+max_length:
+  value: 256
+test_size:
+  value: 0.25
+min_freq:
+  value: 5
+embedding_dim:
+  value: 300
