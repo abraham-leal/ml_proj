@@ -1,0 +1,10 @@
+torch
+numpy
+datasets
+torchtext == 0.17.2
+tqdm
+matplotlib
+wandb
+ray
+transformers
+tensorflow

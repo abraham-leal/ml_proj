@@ -1,0 +1,4 @@
+.idea/
+.vector_cache/
+__pycache__/
+wandb/
