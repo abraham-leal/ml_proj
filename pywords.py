@@ -8,6 +8,7 @@ import torch.optim as optim
 import torchtext
 import tqdm
 import wandb
+import random
 from fetchData import fetchAndTokenize
 
 run = wandb.init(project="bagofwords-test", config="./config.yaml")
@@ -74,7 +75,7 @@ def predict_sentiment(text, model, tokenizer, vocab, device):
     return predicted_class, predicted_probability
 
 
-vocab, model, tokenizer, train_data_loader, valid_data_loader, test_data_loader = fetchAndTokenize(run)
+vocab, model, tokenizer, train_data_loader, valid_data_loader, test_data_loader, test_data = fetchAndTokenize(run)
 
 print(f"The model has {count_parameters(model):,} trainable parameters")
 
@@ -117,23 +118,23 @@ run.log_artifact(artifact)
 test_loss, test_acc = evaluate(test_data_loader, model, criterion, device)
 wandb.log({"test_acc": test_acc, "test_loss": test_loss })
 
-testing_table = wandb.Table(columns=["text", "sentiment", "confidence"])
+testing_table = wandb.Table(columns=["artifact", "text", "sentiment", "confidence"])
 
-text = "This film is terrible!"
+text = test_data[random.randrange(1,24999)]["text"]
 prediction, confidence = predict_sentiment(text, model, tokenizer, vocab, device)
-testing_table.add_data(text, prediction, confidence)
+testing_table.add_data(artifact.aliases, text, prediction, confidence)
 
-text = "This film is great!"
+text = test_data[random.randrange(1,24999)]["text"]
 prediction, confidence = predict_sentiment(text, model, tokenizer, vocab, device)
-testing_table.add_data(text, prediction, confidence)
+testing_table.add_data(artifact.aliases,text, prediction, confidence)
 
-text = "This film is not terrible, it's great!"
+text = test_data[random.randrange(1,24999)]["text"]
 prediction, confidence = predict_sentiment(text, model, tokenizer, vocab, device)
-testing_table.add_data(text, prediction, confidence)
+testing_table.add_data(artifact.aliases,text, prediction, confidence)
 
-text = "This film is not great, it's terrible!"
+text = test_data[random.randrange(1,24999)]["text"]
 prediction, confidence = predict_sentiment(text, model, tokenizer, vocab, device)
-testing_table.add_data(text, prediction, confidence)
+testing_table.add_data(artifact.aliases,text, prediction, confidence)
 
 run.log({"predictionResults": testing_table})
 run.finish()

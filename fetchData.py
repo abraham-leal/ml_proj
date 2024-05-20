@@ -83,6 +83,6 @@ def fetchAndTokenize(run):
 
     model = NBoW(len(vocab), wandb.config["embedding_dim"], output_dim, pad_index)
 
-    return vocab, model, tokenizer, train_data_loader, valid_data_loader, test_data_loader
+    return vocab, model, tokenizer, train_data_loader, valid_data_loader, test_data_loader,test_data
 
 
