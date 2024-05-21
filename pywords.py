@@ -11,7 +11,7 @@ import wandb
 import random
 from fetchData import fetchAndTokenize
 
-run = wandb.init(project="bagofwords-test", config="./config.yaml")
+run = wandb.init(project="imdb-sentiment-analysis-model-creation", config="./config.yaml")
 
 np.random.seed(wandb.config["seed"])
 torch.manual_seed(wandb.config["seed"])
@@ -122,19 +122,19 @@ testing_table = wandb.Table(columns=["artifact", "text", "sentiment", "confidenc
 
 text = test_data[random.randrange(1,24999)]["text"]
 prediction, confidence = predict_sentiment(text, model, tokenizer, vocab, device)
-testing_table.add_data(artifact.aliases, text, prediction, confidence)
+testing_table.add_data(run.name, text, prediction, confidence)
 
 text = test_data[random.randrange(1,24999)]["text"]
 prediction, confidence = predict_sentiment(text, model, tokenizer, vocab, device)
-testing_table.add_data(artifact.aliases,text, prediction, confidence)
+testing_table.add_data(run.name,text, prediction, confidence)
 
 text = test_data[random.randrange(1,24999)]["text"]
 prediction, confidence = predict_sentiment(text, model, tokenizer, vocab, device)
-testing_table.add_data(artifact.aliases,text, prediction, confidence)
+testing_table.add_data(run.name,text, prediction, confidence)
 
 text = test_data[random.randrange(1,24999)]["text"]
 prediction, confidence = predict_sentiment(text, model, tokenizer, vocab, device)
-testing_table.add_data(artifact.aliases,text, prediction, confidence)
+testing_table.add_data(run.name,text, prediction, confidence)
 
 run.log({"predictionResults": testing_table})
 run.finish()
