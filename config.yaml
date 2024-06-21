@@ -1,5 +1,5 @@
 epochs:
-  value: 50
+  value: 40
 batch_size:
   value: 512
 seed:
