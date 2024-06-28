@@ -3,3 +3,4 @@ nbow.pt
 .vector_cache/
 __pycache__/
 wandb/
+spamassassin/
