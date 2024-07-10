@@ -70,7 +70,6 @@ def fetchAndTokenize(run):
     numericalized_valid_data = tokenized_valid_valid_data.map(numericalize, fn_kwargs={"vocab": vocab})
     numericalized_test_data = tokenized_test_data.map(numericalize, fn_kwargs={"vocab": vocab})
 
-
     torch_train_data = numericalized_train_data.with_format(type="torch", columns=["ids", "label"])
     torch_valid_data = numericalized_valid_data.with_format(type="torch", columns=["ids", "label"])
     torch_test_data = numericalized_test_data.with_format(type="torch", columns=["ids", "label"])

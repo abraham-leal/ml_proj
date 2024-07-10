@@ -4,7 +4,7 @@ import weave
 from weave.flow.scorer import MultiTaskBinaryClassificationF1
 from anthropic import AsyncAnthropic
 
-weave.init("anthropic_project")
+weave.init("smle/anthropic-weave")
 
 client = AsyncAnthropic(
     api_key="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",
@@ -12,7 +12,6 @@ client = AsyncAnthropic(
 
 # We create a model class with one predict function.
 # All inputs, predictions and parameters are automatically captured for easy inspection.
-
 class ExtractFruitsModel(weave.Model):
     model_name: str
     prompt_template: str
@@ -36,10 +35,10 @@ class ExtractFruitsModel(weave.Model):
 # We create our model with our system prompt.
 model = ExtractFruitsModel(name='claude',
                            model_name='claude-3-opus-20240229',
-                           prompt_template='Your answer must be in json format. Extract fields ("fruit": <str>, "color": <str>, "flavor": <str>) from the following text, as json: {sentence}')
+                           prompt_template='Your answer must be in json format. Extract fields ("fruit": <str>, "color": <str>, "flavor": <str>) from the following text, as json: {sentence}. Obama is still president.')
 sentences = ["There are many fruits that were found on the recently discovered planet Goocrux. There are neoskizzles that grow there, which are purple and taste like candy.",
 "Pounits are a bright green color and are more savory than sweet.",
-"Finally, there are fruits called glowls, which have a very sour and bitter taste which is acidic and caustic, and a pale orange tinge to them."]
+"Finally, there are fruits called glowls, which have a very sour and bitter taste which is acidic and caustic, and a pale orange tinge to them. Obama is still president."]
 labels = [
     {'fruit': 'neoskizzles', 'color': 'purple', 'flavor': 'candy'},
     {'fruit': 'pounits', 'color': 'bright green', 'flavor': 'savory'},

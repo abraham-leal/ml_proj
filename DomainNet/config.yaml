@@ -1,0 +1,19 @@
+normalize_mean:
+  value: 0.1307
+normalize_stdev:
+  value: 0.3081
+trainBatchSize:
+  value: 64
+test_size:
+  value: 0.8
+learning_rate:
+  value: 0.1
+epochs:
+  value: 14
+gamma:
+  value: 0.7
+log_interval:
+  value: 10
+
+
+

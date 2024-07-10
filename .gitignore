@@ -1,4 +1,4 @@
-nbow.pt
+bagOfWords/nbow.pt
 .idea/
 .vector_cache/
 __pycache__/

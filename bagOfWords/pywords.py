@@ -9,9 +9,9 @@ import torchtext
 import tqdm
 import wandb
 import random
-from fetchData import fetchAndTokenize
+from bagOfWords.fetchData import fetchAndTokenize
 
-run = wandb.init(project="imdb-sentiment-analysis-model-creation", config="./config.yaml")
+run = wandb.init(entity="aleal", project="aleal-odels-e2e", config="./config.yaml")
 
 np.random.seed(wandb.config["seed"])
 torch.manual_seed(wandb.config["seed"])
