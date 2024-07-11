@@ -12,10 +12,9 @@ import CustomTitanicDataset
 import torch.utils.data
 import binaryModel
 import evaluate
+import train
 import os
 import logging
-
-from titanic.train import trainModel
 
 logger = logging.getLogger(__name__)
 config = { 'batchSize': 64, 'num_epochs': 100, 'lr': 0.01}
@@ -115,7 +114,7 @@ def predictTest(model: nn.Module, dataloader, test: pd.DataFrame):
 # Log a pandas df to wandb under the given artifact
 def logToWandbArt (run, name, art, df):
     # save source data to W&B
-    x_table = run.Table(dataframe=df)
+    x_table = wandb.Table(dataframe=df)
     art.add(x_table, name)
 
 def main():
@@ -126,11 +125,13 @@ def main():
     torch.cuda.manual_seed(42)
     torch.backends.cudnn.deterministic = True
 
-    train, valid, test = getData()
+    train_d, valid, test = getData()
 
     with wandb.init(entity="wandb-smle", job_type="training",
                project="aleal-kaggle-titanic", save_code=True,
                group="finetune", force=True, config=config) as run:
+        #Log all code
+        run.log_code(name="titanic-code")
 
         #Initialize Model and log to wandb
         model = binaryModel.binaryModel()
@@ -138,7 +139,7 @@ def main():
         run.watch(model)
 
         ### Contruct pytorch dataloaders
-        train_ds = CustomTitanicDataset.CustomTitanicDataset(train)
+        train_ds = CustomTitanicDataset.CustomTitanicDataset(train_d)
         train_dataloader = torch.utils.data.DataLoader(train_ds, batch_size=run.config.batchSize, shuffle=True)
         valid_ds = CustomTitanicDataset.CustomTitanicDataset(valid)
         valid_dataloader = torch.utils.data.DataLoader(valid_ds, batch_size=run.config.batchSize, shuffle=True)
@@ -162,7 +163,7 @@ def main():
 
             #train
             logger.info('Training Epoch:' + str(epoch))
-            ttc, tts, trl = trainModel(model, train_dataloader, optimizer, loss_fn, ttc, tts, trl, device)
+            ttc, tts, trl = train.trainModel(model, train_dataloader, optimizer, loss_fn, ttc, tts, trl, device)
             #evaluate
             vtc, vts, vrl = evaluate.evaluateModel(model, valid_dataloader, loss_fn, vtc, vts, vrl, device)
 
@@ -174,7 +175,7 @@ def main():
             run.log({"valid_acc": valid_accuracy, "valid_loss": valid_loss}, step=epoch)
 
         # Log model to wandb
-        model_art = run.Artifact(type="model", name="titanic-model")
+        model_art = wandb.Artifact(type="model", name="titanic-model")
         with model_art.new_file("titanic-model.pt", mode="wb") as file:
             torch.save(model.state_dict(), file)
         run.log_artifact(model_art)

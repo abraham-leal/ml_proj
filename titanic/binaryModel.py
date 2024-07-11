@@ -11,10 +11,15 @@ class binaryModel(nn.Module):
         self.output = nn.Linear(100, 1)
         self.sigmoid = nn.Sigmoid()
 
+        # Regularization
+        self.dropout = nn.Dropout(0.25)
+
     def forward(self, x):
         x = self.hidden(x)
+        x = self.dropout(x)
         x = self.relu(x)
         x = self.hidden2(x)
+        x = self.dropout(x)
         x = self.relu2(x)
         x = self.output(x)
         x = self.sigmoid(x)
