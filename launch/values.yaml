@@ -1,0 +1,90 @@
+agent:
+  labels: {}
+  # W&B API key.
+  apiKey: "090dccdd2b5c57d18204b792e47f6026c35af6f5"
+  # Providing API key can be done external to this chart
+  useExternalWandbSecret: false
+  # Container image to use for the agent.
+  image: wandb/launch-agent:0.17.3
+  # Image pull policy for agent image.
+  imagePullPolicy: IfNotPresent
+  # Resources block for the agent spec.
+  resources:
+    limits:
+      cpu: 1500m
+      memory: 3.5Gi
+  # Node selector for the agent pod.
+  nodeSelector: {}
+  # Job start timeout (seconds)
+  startTimeout: 1800
+  # Minimum available agent pods.
+  minAvailable: 3
+  # Tolerations for the agent pod.
+  tolerations: []
+  # Affinites for the agent pod.
+  affinity: {}
+
+# Namespace to deploy launch agent into
+namespace: wandb
+
+# W&B api url (Set yours here)
+baseUrl: https://api.wandb.ai
+
+# Additional target namespaces that the launch agent can deploy into
+additionalTargetNamespaces:
+  - default
+  - wandb
+
+# This should be set to the literal contents of your launch agent config.
+# See the agent setup docs for details: https://docs.wandb.ai/guides/launch/setup-agent-advanced
+launchConfig: |
+  queues:  # List of queues to poll for jobs.
+  - abe-launch-queue
+  max_jobs: 10  # Max number of jobs to run concurrently.
+  max_schedulers: 1  # Max number of sweep schedulers to run concurrently.
+  builder:  # Builder config. Type `noop` and `kaniko` can be used in a kubernetes cluster.
+    type: kaniko
+  verbosity: 1  # Determines print verbosity. 0 = default, 1 = print status more often, 2 = also print debug information
+
+# # Additional environment variables to set on the agent container.
+additionalEnvVars:
+  {}
+  # - name: MY_ENV_VAR
+  #   value: "my-value"
+
+# # Additional secret environment variables to set on the agent container.
+additionalSecretEnvVars:
+  {}
+  # - name: MY_SECRET_ENV_VAR
+  #   value: "my-secret-value"
+
+# The contents of a git credentials file. This will be stored in a k8s secret
+# and mounted into the agent container. Set this if you want to clone private
+# repos. Example: https://username:password@example.com
+gitCreds: |
+
+# Annotations for the wandb service account. Useful when setting up workload identity on gcp.
+serviceAccount:
+  annotations:
+    # iam.gke.io/gcp-service-account:
+    # azure.workload.identity/client-id:
+
+# Set to access key for azure storage if using kaniko with azure.
+azureStorageAccessKey: ""
+
+# Configure the agent to use a custom CA certificate bundle.
+# This is useful if you need to use a self-signed certificate.
+# The value should be the name of a configMap with the contents of the CA bundle.
+customCABundle:
+  configMap:
+    name:
+    key:
+
+# Configure the agent to pass build contexts to kaniko through a persistent volume claim.
+# The pvc will be mounted at /kaniko in the agent container and at /context the kaniko containers
+# that it starts.
+kanikoPvcName:
+
+# Name of a secret containing a docker config.json file to use with kaniko.
+# This secret will be mounted at /kaniko/.docker in the agent container.
+kanikoDockerConfigSecret:
