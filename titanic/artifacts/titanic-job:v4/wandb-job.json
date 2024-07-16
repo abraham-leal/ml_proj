@@ -1,0 +1,25 @@
+{
+    "_version": "v0",
+    "source_type": "artifact",
+    "source": {
+        "entrypoint": [
+            "python",
+            "titanic_predictions.py"
+        ],
+        "notebook": false,
+        "artifact": "wandb-artifact://_id/QXJ0aWZhY3Q6OTU5MTMwOTU3"
+    },
+    "input_types": {
+        "wb_type": "typedDict",
+        "params": {
+            "type_map": {}
+        }
+    },
+    "output_types": {
+        "wb_type": "typedDict",
+        "params": {
+            "type_map": {}
+        }
+    },
+    "runtime": "3.11"
+}

@@ -14,7 +14,8 @@ agent:
       cpu: 500m
       memory: 0.5Gi
   # Node selector for the agent pod.
-  nodeSelector: {}
+  nodeSelector:
+    iam.gke.io/gke-metadata-server-enabled: "true"
   # Job start timeout (seconds)
   startTimeout: 1800
   # Minimum available agent pods.
@@ -40,10 +41,17 @@ additionalTargetNamespaces:
 launchConfig: |
   queues:  # List of queues to poll for jobs.
   - abe-launch-queue
+  environment:
+    type: gcp
+    region: us-central1
+    project: playground-111 
   max_jobs: 10  # Max number of jobs to run concurrently.
   max_schedulers: 1  # Max number of sweep schedulers to run concurrently.
   builder:  # Builder config. Type `noop` and `kaniko` can be used in a kubernetes cluster.
     type: kaniko
+    uri: us-central1-docker.pkg.dev/playground-111/abe-reg/titanic
+    destination: us-central1-docker.pkg.dev/playground-111/abe-reg/titanic
+    build-context-store: gs://abe-bucket/img
   verbosity: 1  # Determines print verbosity. 0 = default, 1 = print status more often, 2 = also print debug information
 
 # # Additional environment variables to set on the agent container.
@@ -66,7 +74,7 @@ gitCreds: |
 # Annotations for the wandb service account. Useful when setting up workload identity on gcp.
 serviceAccount:
   annotations:
-    # iam.gke.io/gcp-service-account:
+    iam.gke.io/gcp-service-account: abe-sa@playground-111.iam.gserviceaccount.com
     # azure.workload.identity/client-id:
 
 # Set to access key for azure storage if using kaniko with azure.

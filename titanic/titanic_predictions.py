@@ -21,7 +21,7 @@ config = { 'batchSize': 64, 'num_epochs': 100, 'lr': 0.01}
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 def getData () -> [pd.DataFrame, pd.DataFrame, pd.DataFrame]:
-    with wandb.init(entity="wandb-smle", job_type="preprocessing",
+    with wandb.init(entity="aleal", job_type="preprocessing",
         project="aleal-kaggle-titanic", save_code=True,
                  group="finetune", force=True, config=config) as run:
         data_art = wandb.Artifact(name="titatinc_artifacts", type="dataset")
@@ -74,7 +74,7 @@ def getData () -> [pd.DataFrame, pd.DataFrame, pd.DataFrame]:
 
 def predictTest(model: nn.Module, dataloader, test: pd.DataFrame):
     logger.info('Predicting Test Set')
-    with wandb.init(entity="wandb-smle", job_type="inference",
+    with wandb.init(entity="aleal", job_type="inference",
                     project="aleal-kaggle-titanic", save_code=True,
                     group="finetune", force=True, config=config) as run:
         ### Visualize test dataset
@@ -127,11 +127,10 @@ def main():
 
     train_d, valid, test = getData()
 
-    with wandb.init(entity="wandb-smle", job_type="training",
+    with wandb.init(entity="aleal", job_type="training",
                project="aleal-kaggle-titanic", save_code=True,
-               group="finetune", force=True, config=config) as run:
-        #Log all code
-        run.log_code(name="titanic-code")
+               group="finetune", force=True, config=config,
+                    settings=wandb.Settings(code_dir=".")) as run:
 
         #Initialize Model and log to wandb
         model = binaryModel.binaryModel()
