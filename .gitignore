@@ -4,4 +4,4 @@ bagOfWords/nbow.pt
 __pycache__/
 wandb/
 spamassassin/
-weave_llmops/.env
+weave_llmops/time_entry_agent/.env
