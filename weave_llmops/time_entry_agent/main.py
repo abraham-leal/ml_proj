@@ -1,7 +1,7 @@
 from termcolor import colored
 import handle_tool_calls as htc
 import helpers
-import generator
+import evaluator
 import datetime
 import weave
 import json
@@ -9,8 +9,7 @@ import time_entry_system as tes
 import call_llm
 def main():
     client = weave.init("abe_timeentry_agent")
-
-    #generator.generate_evaluation_data(client)
+    model = call_llm.TimeSystemHelperModel(llm_type="openai")
 
     system = helpers.start_timekeeping_system()
 
@@ -30,10 +29,8 @@ def main():
         if next_prompt.lower() == "stop":
             return
         messages.append(helpers.build_message("user", next_prompt))
-        ## Print contents of messages dict
-        print(messages)
         ## Call LLM
-        completion = call_llm.call_openai(messages)
+        completion = model.predict(messages)
         ## Extract answer
         response_message = completion.choices[0].message
         ## Provide previous answer back to the LLM for context
@@ -42,7 +39,11 @@ def main():
         tool_calls = response_message.tool_calls
         if tool_calls:
             ## handle tool invocation and return a messages chain with results
-            messages = htc.handle(tool_calls, system, messages)
+            htc.handle(tool_calls, system, messages)
+            ## Call LLM to present result
+            completion = model.predict(messages)
+            messages.append(completion.choices[0].message)
+            print(completion.choices[0].message.content)
         else:
             print(response_message.content)
 

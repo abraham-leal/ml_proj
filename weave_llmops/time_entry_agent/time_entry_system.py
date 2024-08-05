@@ -6,7 +6,7 @@ import weave
 ## Python set/get is weird but f it
 @weave.op
 class TimeEntry():
-    date: datetime.datetime
+    date: str
     project: str
     code: int
     hours: int
@@ -33,25 +33,26 @@ class TimeEntrySystem():
                 self.minisystem[entry.date][entry.project] = {entry.code: entry.hours}
         else:
             self.minisystem[entry.date] = {entry.project: {entry.code: entry.hours}}
-        return self.minisystem[entry.date][entry.project][entry.code]
+        return self.get_times_for_code(entry.code)
     def get_times_for_date(self, date: datetime) -> {}:
         return self.minisystem[date]
 
     def get_times_for_project(self, project: str):
         all_entries_for_project = {}
         for date in self.minisystem:
-            if self.minisystem[date] == project:
+            if project in self.minisystem[date]:
                 for project_code in self.minisystem[date][project]:
-                    all_entries_for_project[project][date][project_code] = self.minisystem[date][project][project_code]
+                    all_entries_for_project.update({project: {date: {project_code: self.minisystem[date][project][project_code]}}})
         return all_entries_for_project
 
     def get_times_for_code(self, code: int):
         all_entries_for_code = {}
         for date in self.minisystem:
             for project in self.minisystem[date]:
-                if self.minisystem[date][project] == code:
-                    all_entries_for_code[code][project][date] = self.minisystem[date][project][code]
+                if code in self.minisystem[date][project]:
+                    all_entries_for_code.update({code: {project: {date: self.minisystem[date][project][code]}}})
         return all_entries_for_code
+
 
     def __str__(self):
         return str(self.minisystem)

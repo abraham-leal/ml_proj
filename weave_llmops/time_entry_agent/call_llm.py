@@ -7,6 +7,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+
 def get_tools():
     tools = [
         {
@@ -97,66 +98,79 @@ def get_tools():
 
     return tools
 
-## Calls OpenRouter, currently set to use llama3.1 - 8B as it is free
-@weave.op()
-def call_openrouter(messages) -> str:
-    or_client = get_oai_llm_client("https://openrouter.ai/api/v1", os.getenv("OR_API_KEY"))
 
-    try:
-        completion = or_client.chat.completions.create(
-            model="meta-llama/llama-3.1-8b-instruct:free",
-            messages=messages,
-            response_format={"type": "text"},
-            temperature=0.0,
-        )
-    except Exception as e:
-        print("Unable to generate ChatCompletion response")
-        print(f"Exception: {e}")
-        return e
-    return completion
+class TimeSystemHelperModel(weave.Model):
+    llm_type: str
 
-## Calls OpenAI's openai-4o
-@weave.op()
-def call_openai(messages):
-    oai_client = get_oai_llm_client(url="", apikey=os.getenv("OPENAI_API_KEY"))
+    def predict(self, messages: []):
+        if self.llm_type == "openai":
+            return self.call_openai(messages)
+        elif self.llm_type == "or":
+            return self.call_openrouter(messages)
+        elif self.llm_type == "ant":
+            return self.call_anthropic(messages)
+        else:
+            print("Invalid llm type")
 
-    try:
-        completion = oai_client.chat.completions.create(
-            model="gpt-4o-mini",
-            messages=messages,
-            tools=get_tools(),
-            temperature=0.0,
-        )
-    except Exception as e:
-        print("Unable to generate ChatCompletion response")
-        print(f"Exception: {e}")
-        return e
-    return completion
+    ## Calls OpenRouter, currently set to use llama3.1 - 8B as it is free
+    @weave.op()
+    def call_openrouter(self, messages) -> str:
+        or_client = self.get_oai_llm_client("https://openrouter.ai/api/v1", os.getenv("OR_API_KEY"))
 
+        try:
+            completion = or_client.chat.completions.create(
+                model="meta-llama/llama-3.1-8b-instruct:free",
+                messages=messages,
+                response_format={"type": "text"},
+                temperature=0.0,
+            )
+        except Exception as e:
+            print("Unable to generate ChatCompletion response")
+            print(f"Exception: {e}")
+            return e
+        return completion
 
-## Calls Anthropic's claude-3-5-sonnet-20240620
-@weave.op()
-def call_anthropic(messages) -> str:
-    ant_client = anthropic.Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
+    ## Calls OpenAI's openai-4o
+    @weave.op()
+    def call_openai(self, messages):
+        oai_client = self.get_oai_llm_client(url="", apikey=os.getenv("OPENAI_API_KEY"))
 
-    try:
-        message = ant_client.messages.create(
-            model="claude-3-5-sonnet-20240620",
-            max_tokens=1024,
-            temperature=0.0,
-            messages=messages
-        )
-    except Exception as e:
-        print("Unable to generate ChatCompletion response")
-        print(f"Exception: {e}")
-        return e
-    return message
+        try:
+            completion = oai_client.chat.completions.create(
+                model="gpt-4o-mini",
+                messages=messages,
+                tools=get_tools(),
+                temperature=0.0,
+            )
+        except Exception as e:
+            print("Unable to generate ChatCompletion response")
+            print(f"Exception: {e}")
+            return e
+        return completion
 
-def get_oai_llm_client(url: str, apikey: str) -> openai.Client:
-    if url == "":
-        client = OpenAI(api_key=apikey)
-    else:
-        client = OpenAI(
-            base_url=url,
-            api_key=apikey)
-    return client
+    ## Calls Anthropic's claude-3-5-sonnet-20240620
+    @weave.op()
+    def call_anthropic(self, messages) -> str:
+        ant_client = anthropic.Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
+
+        try:
+            message = ant_client.messages.create(
+                model="claude-3-5-sonnet-20240620",
+                max_tokens=1024,
+                temperature=0.0,
+                messages=messages
+            )
+        except Exception as e:
+            print("Unable to generate ChatCompletion response")
+            print(f"Exception: {e}")
+            return e
+        return message
+
+    def get_oai_llm_client(self, url: str, apikey: str) -> openai.Client:
+        if url == "":
+            client = OpenAI(api_key=apikey)
+        else:
+            client = OpenAI(
+                base_url=url,
+                api_key=apikey)
+        return client
