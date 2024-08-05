@@ -7,58 +7,150 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+def get_tools():
+    tools = [
+        {
+            "type": "function",
+            "function": {
+                "name": "record_time",
+                "description": "Add or subtract time in the time keeping system",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "entry": {
+                            "type": "string",
+                            "description": """
+                            A json describing a TimeEntry.
+                            The TimeEntry should be returned in JSON with the following structure:
+                            {"date": {"year": int,"month": int,"day": int}, "project": str, "code": int, "hours": int}
+                            """,
+                        }
+                    },
+                    "required": ["entry"],
+                },
+            },
+        },
+        {
+            "type": "function",
+            "function": {
+                "name": "get_times_for_date",
+                "description": "Get all time entries associated with a date",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "date": {
+                            "type": "string",
+                            "description": """
+                                A json describing a date.
+                                The date should be represented in the following json format:
+                                {"year": int,"month": int,"day": int}
+                                """,
+                        }
+                    },
+                    "required": ["date"],
+                },
+            },
+        },
+        {
+            "type": "function",
+            "function": {
+                "name": "get_times_for_project",
+                "description": "Get all time entries associated with a project",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "project": {
+                            "type": "string",
+                            "description": """
+                                    A json describing a project.
+                                    The date should be represented in the following json format:
+                                    {"project": str}
+                                    """,
+                        }
+                    },
+                    "required": ["project"],
+                },
+            },
+        },
+        {
+            "type": "function",
+            "function": {
+                "name": "get_times_for_code",
+                "description": "Get all time entries associated with a code",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "code": {
+                            "type": "string",
+                            "description": """
+                                        A json describing a code.
+                                        The date should be represented in the following json format:
+                                        {"code": int}
+                                        """,
+                        }
+                    },
+                    "required": ["code"],
+                },
+            },
+        }
+    ]
+
+    return tools
+
 ## Calls OpenRouter, currently set to use llama3.1 - 8B as it is free
 @weave.op()
-def call_openrouter(context: str, query: str) -> str:
-    or_client = get_oai_llm_client(url="", apikey=os.getenv("OPENAI_API_KEY"))
+def call_openrouter(messages) -> str:
+    or_client = get_oai_llm_client("https://openrouter.ai/api/v1", os.getenv("OR_API_KEY"))
 
-    completion = or_client.chat.completions.create(
-        model="meta-llama/llama-3.1-8b-instruct:free",
-        messages=[
-            {"role": "system", "content": context},
-            {"role": "user", "content": query}
-        ],
-        response_format={"type": "text"},
-        temperature=0.0,
-    )
-
-    return completion.choices[0].message.content
+    try:
+        completion = or_client.chat.completions.create(
+            model="meta-llama/llama-3.1-8b-instruct:free",
+            messages=messages,
+            response_format={"type": "text"},
+            temperature=0.0,
+        )
+    except Exception as e:
+        print("Unable to generate ChatCompletion response")
+        print(f"Exception: {e}")
+        return e
+    return completion
 
 ## Calls OpenAI's openai-4o
 @weave.op()
-def call_openai(context: str, query: str):
-    oai_client = get_oai_llm_client("https://openrouter.ai/api/v1", os.getenv("OR_API_KEY"))
+def call_openai(messages):
+    oai_client = get_oai_llm_client(url="", apikey=os.getenv("OPENAI_API_KEY"))
 
-    completion = oai_client.chat.completions.create(
-        model="openai-4o",
-        messages=[
-            {"role": "system", "content": context},
-            {"role": "user", "content": query}
-        ],
-        response_format={"type": "text"},
-        temperature=0.0,
-    )
-
-    return completion.choices[0].message.content
+    try:
+        completion = oai_client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=messages,
+            tools=get_tools(),
+            temperature=0.0,
+        )
+    except Exception as e:
+        print("Unable to generate ChatCompletion response")
+        print(f"Exception: {e}")
+        return e
+    return completion
 
 
 ## Calls Anthropic's claude-3-5-sonnet-20240620
 @weave.op()
-def call_anthropic(context: str, query: str) -> str:
+def call_anthropic(messages) -> str:
     ant_client = anthropic.Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
 
-    message = ant_client.messages.create(
-        model="claude-3-5-sonnet-20240620",
-        max_tokens=1024,
-        system=context,
-        temperature=0.0,
-        messages=[
-            {"role": "user", "content": query}
-        ]
-    )
-    return message.content[0].text
-
-
+    try:
+        message = ant_client.messages.create(
+            model="claude-3-5-sonnet-20240620",
+            max_tokens=1024,
+            temperature=0.0,
+            messages=messages
+        )
+    except Exception as e:
+        print("Unable to generate ChatCompletion response")
+        print(f"Exception: {e}")
+        return e
+    return message
 
 def get_oai_llm_client(url: str, apikey: str) -> openai.Client:
     if url == "":
