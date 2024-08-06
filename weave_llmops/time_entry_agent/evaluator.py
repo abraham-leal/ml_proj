@@ -1,10 +1,25 @@
+from typing import Optional
+
 import weave
+import call_llm
+import helpers
+import json
+import asyncio
+import handle_tool_calls as htc
 from weave.flow.scorer import Scorer
 
 weave.init("abe_timeentry_agent")
 
 @weave.op()
-def generate_evaluation_data(weave_client):
+def generate_evaluation_data():
+    questions = [
+        {"messages": [helpers.build_message("user","Log 8 hours of work for project chameleon and entry code 23523 for today")]},
+        {"messages": [helpers.build_message("user", "Log 5 hours to project nimbus with code 44 for 10/23/2022")]},
+        {"messages": [helpers.build_message("user","What times are associated with project nimbus?")]},
+        {"messages": [helpers.build_message("user","What times are associated with code 23523?")]}
+    ]
+
+
     prompts = [
         "Log 8 hours of work for project chameleon and entry code 23523 for today",
         "Log 5 hours to project nimbus with code 44 for 10/23/2022",
@@ -26,72 +41,42 @@ def generate_evaluation_data(weave_client):
         {'id': '3', 'sentence': prompts[3], 'target': answers[3]}
     ]
 
-    return int_tests
+    return questions
 
 # Define a scorer
 @weave.op()
-def success_in_timekeeping_scorer(Scorer):
-    class_names: list[str]
-    @weave.op()
-    def summarize(self, score_rows: list) -> Optional[dict]:
-        result = {}
-        cols = transpose(score_rows)
-
-        for class_name in self.class_names:
-            col = cols[class_name]
-            tp = sum(r["correct"] and not r["negative"] for r in col)
-            fp = sum(not r["correct"] and not r["negative"] for r in col)
-            fn = sum(not r["correct"] and r["negative"] for r in col)
-            precision, recall, f1 = p_r_f1(tp, fp, fn)
-            result[class_name] = {"f1": f1, "precision": precision, "recall": recall}
-
-        return result
-
-    @weave.op()
-    def score(self, target: dict, model_output: Optional[dict]) -> dict:
-        result = {}
-        for class_name in self.class_names:
-            class_label = target.get(class_name)
-            class_model_output = model_output.get(class_name) if model_output else None
-            result[class_name] = {
-                "correct": class_label == class_model_output,
-                "negative": not class_model_output,
-            }
-        return result
-
-    context_precision_prompt = f'''Given the question, answer and context verify if the context was useful in arriving at the given answer.
-    Give the verdict field a value of 1 if it is useful and a value of 0 if it is not useful.
+def success_in_timekeeping_scorer(messages, model_output):
+    context_precision_prompt = f'''Given the prompt and answer verify if the assistant 
+    successfully and correctly logged or retrieved data from a time keeping system.
+    Give the success field a value between 0 and 1, inclusive. Where 1 means the assistant was completely successful,
+    and 0 means the assistant was completely unsuccessful
     Answer only in valid JSON format.
 
-    question: {question}
-    context: {context}
-    answer: {answer}
-    verdict: '''
-    client = OpenAI(api_key=userdata.get('OPEN_AI_SECRET'))
+    prompt: {messages[0]["content"]}
+    answer: {model_output.choices[0].message.content}'''
 
-    prompt = context_precision_prompt.format(
-        question=question,
-        context=model_output['context'],
-        answer=model_output['answer'],
-    )
+    messages = [
+        helpers.build_message("user", context_precision_prompt),
+    ]
 
-    response = client.chat.completions.create(
-        model="gpt-4o",
-        messages=[{"role": "user", "content": prompt}],
-        response_format={ "type": "json_object" }
-    )
+    evaluator_model = call_llm.TimeSystemHelperModel(llm_type="openai")
 
+    response = evaluator_model.predict(messages)
+    print(response.choices[0].message.content)
     response = json.loads(response.choices[0].message.content)
     return {
-        "verdict": int(response["verdict"]) == 1,
+        "success": int(response["success"]),
     }
 
+@weave.op()
 def evaluate():
+    model = call_llm.TimeSystemHelperModel(llm_type="openai")
     evaluation = weave.Evaluation(
-        dataset=generate_evaluation_data,
+        dataset=generate_evaluation_data(),
         scorers=[
-            MultiTaskBinaryClassificationF1(class_names=["fruit", "color", "flavor"]),
-            fruit_name_score
+            success_in_timekeeping_scorer
         ],
     )
-    print(asyncio.run(evaluation.evaluate(model)))
+    asyncio.run(evaluation.evaluate(model))
+
+evaluate()

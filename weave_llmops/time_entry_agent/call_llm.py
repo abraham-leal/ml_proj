@@ -4,10 +4,12 @@ import weave
 from openai import OpenAI
 import anthropic
 from dotenv import load_dotenv
+import handle_tool_calls as htc
+import time_entry_system as tes
 
 load_dotenv()
 
-
+@weave.op()
 def get_tools():
     tools = [
         {
@@ -101,7 +103,10 @@ def get_tools():
 
 class TimeSystemHelperModel(weave.Model):
     llm_type: str
+    system: tes.TimeEntrySystem
+    system = tes.TimeEntrySystem()
 
+    @weave.op()
     def predict(self, messages: []):
         if self.llm_type == "openai":
             return self.call_openai(messages)
@@ -111,6 +116,20 @@ class TimeSystemHelperModel(weave.Model):
             return self.call_anthropic(messages)
         else:
             print("Invalid llm type")
+
+    @weave.op()
+    def handle_tools(self, messages, response_message):
+        ## Check if tools were called
+        tool_calls = response_message.choices[0].message.tool_calls
+        if tool_calls:
+            ## handle tool invocation and return a messages chain with results
+            htc.handle(tool_calls, self.system, messages)
+            ## Call LLM to present result
+            completion = self.predict(messages)
+            messages.append(completion.choices[0].message)
+            return completion
+        else:
+            return response_message
 
     ## Calls OpenRouter, currently set to use llama3.1 - 8B as it is free
     @weave.op()
@@ -128,6 +147,9 @@ class TimeSystemHelperModel(weave.Model):
             print("Unable to generate ChatCompletion response")
             print(f"Exception: {e}")
             return e
+
+        messages.append(completion.choices[0].message)
+        completion = self.handle_tools(messages, completion)
         return completion
 
     ## Calls OpenAI's openai-4o
@@ -146,6 +168,9 @@ class TimeSystemHelperModel(weave.Model):
             print("Unable to generate ChatCompletion response")
             print(f"Exception: {e}")
             return e
+
+        messages.append(completion.choices[0].message)
+        completion = self.handle_tools(messages, completion)
         return completion
 
     ## Calls Anthropic's claude-3-5-sonnet-20240620
@@ -164,8 +189,12 @@ class TimeSystemHelperModel(weave.Model):
             print("Unable to generate ChatCompletion response")
             print(f"Exception: {e}")
             return e
-        return message
 
+        messages.append(message.choices[0].message)
+        completion = self.handle_tools(messages, message)
+        return completion
+
+    @weave.op()
     def get_oai_llm_client(self, url: str, apikey: str) -> openai.Client:
         if url == "":
             client = OpenAI(api_key=apikey)
