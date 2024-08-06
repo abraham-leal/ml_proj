@@ -28,14 +28,15 @@ def main():
             return
         messages.append(helpers.build_message("user", next_prompt))
         ## Call LLM and handle tool calling
-        completion = model.predict(messages)
+        completion, call = model.predict.call(messages)
         print(completion.choices[0].message.content)
         ## Provide previous answer back to the LLM for context
         messages.append(completion.choices[0].message)
-
-
-
-
+        feedback_prompt = input('Did this answer meet your expectations? Y/N.\n')
+        if feedback_prompt.lower() == "y":
+            call.feedback.add_reaction("👍")
+        else:
+            call.feedback.add_reaction("👎")
 
 if __name__ == '__main__':
     main()
