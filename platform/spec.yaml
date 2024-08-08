@@ -1,0 +1,60 @@
+apiVersion: apps.wandb.com/v1
+kind: WeightsAndBiases
+metadata:
+  labels:
+    app.kubernetes.io/instance: wandb
+    app.kubernetes.io/name: weightsandbiases
+    wandb.ai/console-default: "true"
+  name: wandb
+  namespace: default
+spec:
+  chart:
+    version: 0.13.3
+  values:
+    global:
+      extraEnv:
+        DISABLE_WEAVE_PII: 'true'
+        GORILLA_SUPPORTED_FILE_STORES: >-
+          s3://:abe-fake-bucket-info
+        SERVER_FLAG_WEAVE_1_PERCENTAGE: '100'
+        WEAVE_ENABLED: 'true'
+      auth:
+        sessionLengthHours: 100
+      weave-trace:
+        enabled: false
+    app:
+      extraEnv:
+        GORILLA_ALLOW_ANONYMOUS_PUBLIC_PROJECTS: 'true'
+        GORILLA_RUN_STORE_ONPREM_MIGRATE_CREATE_RUN_TABLES: 'true'
+        GORILLA_RUN_STORE_ONPREM_MIGRATE_CREATE_RUN_STORE: 'true'
+        GORILLA_RUN_STORE_ONPREM_MIGRATE_SHADOW_RUN_UPDATES: 'true'
+        GORILLA_RUN_STORE_ONPREM_MIGRATE_FLAT_RUNS_MIGRATOR: 'true'
+        GORILLA_RUN_STORE_ONPREM_MIGRATE_DISABLE_READS: 'false'
+        GORILLA_ALLOW_TEAM_CREATION: 'true'
+        GORILLA_SSO_PROVISIONING: 'false'
+        GORILLA_BUCKET_ATTRIBUTION_DISABLED: 'false'
+      extraEnvs:
+        GORILLA_ALLOW_TEAM_CREATION: 'false'
+    flat-run-fields-updater:
+      install: false
+    kafka:
+      install: false
+    _reconcile: 1723071714698
+    otel:
+      install: false
+    parquet:
+      cronJob:
+        exportHistoryToParquet:
+          schedule: '* * * * *'
+          enabled: true
+      extraEnv:
+        GORILLA_SUPPRESS_ON_DEMAND_PARQUET_EXPORT: true
+        GORILLA_TRACER: otlp+grpc://wandb-otel-daemonset:4317?trace_ratio=0
+      deployment:
+        extraEnv:
+          GORILLA_HISTORY_STORE: >-
+            http://wandb-parquet:8087/_goRPC_,mysql://wandb:XXX@abe-test-wandb-mysql-instance-1.cbz4oaw8p6rp.us-east-1.rds.amazonaws.com:3306/wandb?tls=preferred
+          GORILLA_PARQUET_LIVE_HISTORY_STORE: >-
+            mysql://wandb:XXX@abe-test-wandb-mysql-instance-1.cbz4oaw8p6rp.us-east-1.rds.amazonaws.com:3306/wandb?tls=preferred
+    weave-trace:
+      install: false
