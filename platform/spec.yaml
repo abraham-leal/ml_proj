@@ -8,53 +8,107 @@ metadata:
   name: wandb
   namespace: default
 spec:
-  chart:
-    version: 0.13.3
   values:
     global:
+      host: https://abe-sm.wandb.ml
+      cloudProvider: "aws"
+      license: eyJhbGciOiJSUzI1NiIsImtpZCI6InUzaHgyQjQyQWhEUXM1M0xQY09yNnZhaTdoSlduYnF1bTRZTlZWd1VwSWM9In0.eyJjb25jdXJyZW50QWdlbnRzIjoxMCwiZGVwbG95bWVudElkIjoiZDQxNmFkN2YtNTQ5Yi00NTMzLTkxYWMtNDc2NDg3Yzg1MThiIiwibWF4VXNlcnMiOjUwLCJtYXhWaWV3T25seVVzZXJzIjoyMCwibWF4U3RvcmFnZUdiIjoxMDAwMDAwMCwibWF4VGVhbXMiOjEwMCwibWF4UmVnaXN0ZXJlZE1vZGVscyI6NSwiZXhwaXJlc0F0IjoiMjAzMC0xMi0xNlQwNzo1OTo1OS45OTlaIiwiZmxhZ3MiOlsiU0NBTEFCTEUiLCJteXNxbCIsInMzIiwicmVkaXMiLCJOT1RJRklDQVRJT05TIiwic2xhY2siLCJub3RpZmljYXRpb25zIiwiTUFOQUdFTUVOVCIsIm9yZ19kYXNoIiwiYXV0aDAiLCJjb2xsZWN0X2F1ZGl0X2xvZ3MiLCJyYmFjIiwiQllPQiIsImJ5b2IiLCJMQVVOQ0hfQ0xVU1RFUlMiLCJsYXVuY2hfY2x1c3RlcnMiXSwidHJpYWwiOmZhbHNlLCJhY2Nlc3NLZXkiOiJiMjM5MmViZC0yZTljLTRkZGUtYTk5Ni1lMGFiYmYyYWU1YTEiLCJzZWF0cyI6NTAsInZpZXdPbmx5U2VhdHMiOjIwLCJ0ZWFtcyI6MTAwLCJyZWdpc3RlcmVkTW9kZWxzIjo1LCJzdG9yYWdlR2lncyI6MTAwMDAwMDAsImV4cCI6MTkyMzYzODM5OX0.CEglDoVnWJyIlCG6jEaTLyD4-Q7AghIouOKC3QueY9YXInT2IW5PtRJ4DEVB61ViaR50I9LxkxNcAek01qVIhK56xkgJ-p7mdIdOtXW4IigGrclERYiPsg6jVX1PTF1MxwJ3h1kPgqtMzpZkJpiJ_-XUGLBxaCjXorjuTieHsMFgjLGi-7Bq8tfgnlXtSteeEC_gLs3wGGhQSfbNtBedWi7qQJiNP7Ht_wfMpwfPBweFBKEJr8ffFFma5nniBHPiE-RUIebF9tB4XK5CS-lPGQ011o088t_0peCL13L27y9QvMIjooW7qslmgOLA51tK_86HjqB1Xx-KtSbE6XdzFA
+
+
+      # This is an example using AWS S3 bucket with the IAM permissions already set for the EKS nodes
+      defaultBucket:
+        accessKey: 
+        secretKey: 
+        name: abe-fake-bucket-info
+        provider: s3
+        region: us-east-1
+
+      mysql:
+        database: wandb
+        host: abe-test-wandb-mysql-instance-1.cbz4oaw8p6rp.us-east-1.rds.amazonaws.com
+        password: XXX
+        port: 3306
+        user: wandb
+
+      redis:
+        host: "abe-redis-cache-w9awdi.serverless.use1.cache.amazonaws.com"
+        port: 6379
+        password: "somepassforredis"
+
       extraEnv:
-        DISABLE_WEAVE_PII: 'true'
-        GORILLA_SUPPORTED_FILE_STORES: >-
-          s3://:abe-fake-bucket-info
-        SERVER_FLAG_WEAVE_1_PERCENTAGE: '100'
-        WEAVE_ENABLED: 'true'
-      auth:
-        sessionLengthHours: 100
-      weave-trace:
-        enabled: false
-    app:
-      extraEnv:
-        GORILLA_ALLOW_ANONYMOUS_PUBLIC_PROJECTS: 'true'
-        GORILLA_RUN_STORE_ONPREM_MIGRATE_CREATE_RUN_TABLES: 'true'
-        GORILLA_RUN_STORE_ONPREM_MIGRATE_CREATE_RUN_STORE: 'true'
-        GORILLA_RUN_STORE_ONPREM_MIGRATE_SHADOW_RUN_UPDATES: 'true'
-        GORILLA_RUN_STORE_ONPREM_MIGRATE_FLAT_RUNS_MIGRATOR: 'true'
-        GORILLA_RUN_STORE_ONPREM_MIGRATE_DISABLE_READS: 'false'
-        GORILLA_ALLOW_TEAM_CREATION: 'true'
-        GORILLA_SSO_PROVISIONING: 'false'
-        GORILLA_BUCKET_ATTRIBUTION_DISABLED: 'false'
-      extraEnvs:
-        GORILLA_ALLOW_TEAM_CREATION: 'false'
-    flat-run-fields-updater:
+        BUCKET_QUEUE: internal://
+
+    mysql:
       install: false
+
+    redis:
+      install: false
+    
     kafka:
       install: false
-    _reconcile: 1723071714698
+    
+    flat-run-fields-updater:
+      install: false
+    
     otel:
       install: false
-    parquet:
-      cronJob:
-        exportHistoryToParquet:
-          schedule: '* * * * *'
-          enabled: true
+
+    prometheus:
+      install: false
+
+    yace:
+      install: false
+
+    app:
+      image:
+        repository: wandb/local
+        tag: latest
       extraEnv:
-        GORILLA_SUPPRESS_ON_DEMAND_PARQUET_EXPORT: true
-        GORILLA_TRACER: otlp+grpc://wandb-otel-daemonset:4317?trace_ratio=0
-      deployment:
-        extraEnv:
-          GORILLA_HISTORY_STORE: >-
-            http://wandb-parquet:8087/_goRPC_,mysql://wandb:XXX@abe-test-wandb-mysql-instance-1.cbz4oaw8p6rp.us-east-1.rds.amazonaws.com:3306/wandb?tls=preferred
-          GORILLA_PARQUET_LIVE_HISTORY_STORE: >-
-            mysql://wandb:XXX@abe-test-wandb-mysql-instance-1.cbz4oaw8p6rp.us-east-1.rds.amazonaws.com:3306/wandb?tls=preferred
+        GORILLA_ALLOW_ANONYMOUS_PUBLIC_PROJECTS: true
+        SERVER_FLAG_NAMED_WORKSPACES_AVAILABLE: true
+        ENABLE_REGISTRY_UI: true
+
+    parquet:
+      install: true
+      image:
+        repository: wandb/local
+        tag: latest
+
+    weave:
+      install: true
+      image:
+        repository: wandb/local
+        tag: latest
+
     weave-trace:
       install: false
+      image:
+        repository: wandb/weave-trace
+        tag: latest
+      datadog:
+        enabled: false
+
+    console:
+      install: true
+      image:
+        repository: wandb/console
+        tag: latest
+
+    # This is an example of how to configure the ingress for the app using NGINX.
+    # For AWS plese refer to this link: https://github.com/wandb/helm-charts/blob/main/charts/operator-wandb/examples/aws/ingress.yaml
+    ingress:
+      install: true
+      create: true
+      defaultBackend: "app"
+      issuer:
+        create: false
+        provider: ""
+        server: https://acme-v02.api.letsencrypt.org/directory
+        email: support@wandb.com
+      class: nginx
+      annotations:
+        nginx.ingress.kubernetes.io/proxy-body-size: 64m
+      hosts:
+        - host: abe-sm.wandb.ml
+          paths:
+            - path: /
