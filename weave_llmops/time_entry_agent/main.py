@@ -9,7 +9,7 @@ import call_llm
 
 @weave.op()
 def main():
-    client = weave.init("abe_timeentry_agent")
+    weave.init("abe_timeentry_agent")
     model = call_llm.TimeSystemHelperModel(llm_type="openai")
 
     context = """

@@ -1,8 +1,9 @@
 import os
 import openai
 import weave
+from mistralai.client import MistralClient
 from openai import OpenAI
-import anthropic
+import mistralai
 from dotenv import load_dotenv
 import handle_tool_calls as htc
 import time_entry_system as tes
@@ -110,10 +111,10 @@ class TimeSystemHelperModel(weave.Model):
     def predict(self, messages: []):
         if self.llm_type == "openai":
             return self.call_openai(messages)
-        elif self.llm_type == "or":
-            return self.call_openrouter(messages)
-        elif self.llm_type == "ant":
-            return self.call_anthropic(messages)
+        elif self.llm_type == "llama":
+            return self.call_llama(messages)
+        elif self.llm_type == "mistral":
+            return self.call_mistral(messages)
         else:
             print("Invalid llm type")
 
@@ -133,14 +134,14 @@ class TimeSystemHelperModel(weave.Model):
 
     ## Calls OpenRouter, currently set to use llama3.1 - 8B as it is free
     @weave.op()
-    def call_openrouter(self, messages) -> str:
+    def _call_openrouter(self, model, messages) -> str:
         or_client = self.get_oai_llm_client("https://openrouter.ai/api/v1", os.getenv("OR_API_KEY"))
 
         try:
             completion = or_client.chat.completions.create(
-                model="meta-llama/llama-3.1-8b-instruct:free",
+                model=model,
                 messages=messages,
-                response_format={"type": "text"},
+                tools=get_tools(),
                 temperature=0.0,
             )
         except Exception as e:
@@ -173,26 +174,29 @@ class TimeSystemHelperModel(weave.Model):
         completion = self.handle_tools(messages, completion)
         return completion
 
-    ## Calls Anthropic's claude-3-5-sonnet-20240620
     @weave.op()
-    def call_anthropic(self, messages) -> str:
-        ant_client = anthropic.Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
+    def call_mistral(self, messages):
+        mistral_client = MistralClient(api_key=os.environ["MISTRAL_API_KEY"])
 
         try:
-            message = ant_client.messages.create(
-                model="claude-3-5-sonnet-20240620",
-                max_tokens=1024,
-                temperature=0.0,
-                messages=messages
+            completion = mistral_client.chat(
+                model="mistral-large-latest",
+                messages=messages,
+                tools=get_tools()
             )
         except Exception as e:
             print("Unable to generate ChatCompletion response")
             print(f"Exception: {e}")
             return e
 
-        messages.append(message.choices[0].message)
-        completion = self.handle_tools(messages, message)
+        messages.append(completion.choices[0].message)
+        completion = self.handle_tools(messages, completion)
         return completion
+
+    ## Calls Llama's 3.1 8B Instruct
+    @weave.op()
+    def call_llama(self, messages):
+        return self._call_openrouter("meta-llama/llama-3.1-8b-instruct:free", messages)
 
     @weave.op()
     def get_oai_llm_client(self, url: str, apikey: str) -> openai.Client:

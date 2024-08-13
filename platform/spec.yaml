@@ -8,17 +8,26 @@ metadata:
   name: wandb
   namespace: default
 spec:
+  chart:
+    url: https://charts.wandb.ai
+    name: operator-wandb
+    version: 0.17.4
+    password: ''
+    username: ''
   values:
     global:
-      host: https://abe-sm.wandb.ml
+      host: http://localhost
       cloudProvider: "aws"
       license: eyJhbGciOiJSUzI1NiIsImtpZCI6InUzaHgyQjQyQWhEUXM1M0xQY09yNnZhaTdoSlduYnF1bTRZTlZWd1VwSWM9In0.eyJjb25jdXJyZW50QWdlbnRzIjoxMCwiZGVwbG95bWVudElkIjoiZDQxNmFkN2YtNTQ5Yi00NTMzLTkxYWMtNDc2NDg3Yzg1MThiIiwibWF4VXNlcnMiOjUwLCJtYXhWaWV3T25seVVzZXJzIjoyMCwibWF4U3RvcmFnZUdiIjoxMDAwMDAwMCwibWF4VGVhbXMiOjEwMCwibWF4UmVnaXN0ZXJlZE1vZGVscyI6NSwiZXhwaXJlc0F0IjoiMjAzMC0xMi0xNlQwNzo1OTo1OS45OTlaIiwiZmxhZ3MiOlsiU0NBTEFCTEUiLCJteXNxbCIsInMzIiwicmVkaXMiLCJOT1RJRklDQVRJT05TIiwic2xhY2siLCJub3RpZmljYXRpb25zIiwiTUFOQUdFTUVOVCIsIm9yZ19kYXNoIiwiYXV0aDAiLCJjb2xsZWN0X2F1ZGl0X2xvZ3MiLCJyYmFjIiwiQllPQiIsImJ5b2IiLCJMQVVOQ0hfQ0xVU1RFUlMiLCJsYXVuY2hfY2x1c3RlcnMiXSwidHJpYWwiOmZhbHNlLCJhY2Nlc3NLZXkiOiJiMjM5MmViZC0yZTljLTRkZGUtYTk5Ni1lMGFiYmYyYWU1YTEiLCJzZWF0cyI6NTAsInZpZXdPbmx5U2VhdHMiOjIwLCJ0ZWFtcyI6MTAwLCJyZWdpc3RlcmVkTW9kZWxzIjo1LCJzdG9yYWdlR2lncyI6MTAwMDAwMDAsImV4cCI6MTkyMzYzODM5OX0.CEglDoVnWJyIlCG6jEaTLyD4-Q7AghIouOKC3QueY9YXInT2IW5PtRJ4DEVB61ViaR50I9LxkxNcAek01qVIhK56xkgJ-p7mdIdOtXW4IigGrclERYiPsg6jVX1PTF1MxwJ3h1kPgqtMzpZkJpiJ_-XUGLBxaCjXorjuTieHsMFgjLGi-7Bq8tfgnlXtSteeEC_gLs3wGGhQSfbNtBedWi7qQJiNP7Ht_wfMpwfPBweFBKEJr8ffFFma5nniBHPiE-RUIebF9tB4XK5CS-lPGQ011o088t_0peCL13L27y9QvMIjooW7qslmgOLA51tK_86HjqB1Xx-KtSbE6XdzFA
 
+      ingress:
+        class: none
+        annotations:
+          kubernetes.io/ingress.class: alb
 
       # This is an example using AWS S3 bucket with the IAM permissions already set for the EKS nodes
       defaultBucket:
-        accessKey: 
-        secretKey: 
+        kmsKey: arn:aws:kms:us-east-1:601636808299:key/f51e8b5f-2ee3-40c0-a885-f0d6c0b5fabf
         name: abe-fake-bucket-info
         provider: s3
         region: us-east-1
@@ -31,9 +40,10 @@ spec:
         user: wandb
 
       redis:
-        host: "abe-redis-cache-w9awdi.serverless.use1.cache.amazonaws.com"
+        host: "abe-redis-cool.w9awdi.ng.0001.use1.cache.amazonaws.com"
         port: 6379
-        password: "somepassforredis"
+        user: wandb
+        password: somepassforredis
 
       extraEnv:
         BUCKET_QUEUE: internal://
@@ -49,9 +59,6 @@ spec:
     
     flat-run-fields-updater:
       install: false
-    
-    otel:
-      install: false
 
     prometheus:
       install: false
@@ -60,9 +67,17 @@ spec:
       install: false
 
     app:
+      traceRatio: 1
       image:
-        repository: wandb/local
-        tag: latest
+        repository: wandb/local-dev
+        tag: 0.57.5-export.2
+      resources:
+          limits:
+            cpu: "4"
+            memory: 16Gi
+          requests:
+            cpu: 500m
+            memory: 8Gi
       extraEnv:
         GORILLA_ALLOW_ANONYMOUS_PUBLIC_PROJECTS: true
         SERVER_FLAG_NAMED_WORKSPACES_AVAILABLE: true
@@ -70,21 +85,29 @@ spec:
 
     parquet:
       install: true
+      replicas: 1
+      cronJob:
+        exportHistoryToParquet:
+          schedule: '* * * * *'
+          enabled: true
+        extraEnv:
+          GORILLA_SUPPRESS_ON_DEMAND_PARQUET_EXPORT: true
+
       image:
-        repository: wandb/local
-        tag: latest
+        repository: wandb/local-dev
+        tag: 0.57.5-export.2
 
     weave:
       install: true
       image:
-        repository: wandb/local
-        tag: latest
+        repository: wandb/local-dev
+        tag: 0.57.5-export.2
 
     weave-trace:
-      install: false
+      install: true
       image:
         repository: wandb/weave-trace
-        tag: latest
+        tag: 0.0.3
       datadog:
         enabled: false
 
@@ -94,21 +117,27 @@ spec:
         repository: wandb/console
         tag: latest
 
-    # This is an example of how to configure the ingress for the app using NGINX.
-    # For AWS plese refer to this link: https://github.com/wandb/helm-charts/blob/main/charts/operator-wandb/examples/aws/ingress.yaml
-    ingress:
-      install: true
-      create: true
-      defaultBackend: "app"
-      issuer:
-        create: false
-        provider: ""
-        server: https://acme-v02.api.letsencrypt.org/directory
-        email: support@wandb.com
-      class: nginx
-      annotations:
-        nginx.ingress.kubernetes.io/proxy-body-size: 64m
-      hosts:
-        - host: abe-sm.wandb.ml
-          paths:
-            - path: /
+    otel:
+      deployment:
+        install: false
+      daemonset:
+        install: true
+        image: otel/opentelemetry-collector-contrib:0.97.0
+        mode: "daemonset"
+        config:
+          exporters:
+            awsxray:
+              region: us-east-1
+          service:
+            pipelines:
+              logs: {}
+              metrics: {}
+              metrics/datadog: {}
+              traces/datadog: {}
+              traces:
+                exporters: [debug]
+                processors: [batch, memory_limiter]
+                receivers: [otlp]
+              traces/xray:
+                exporters: [awsxray]
+                receivers: [otlp]

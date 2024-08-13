@@ -100,7 +100,7 @@ tiktoken==0.7.0
 tokenizers==0.19.1
 torch==2.3.1
 torchvision==0.18.1
-torchtext==0.15.2
+torchtext~=0.18.0
 tqdm==4.66.4
 transformers==4.40.2
 typing_extensions==4.11.0
@@ -113,3 +113,7 @@ wrapt==1.16.0
 xxhash==3.4.1
 yarl==1.9.4
 python-dotenv==1.0.1
+
+scikit-learn~=1.5.1
+langchain~=0.2.6
+mistralai~=0.4.2
